@@ -4,11 +4,12 @@ PKG_NAME:=luci-app-pushbot
 PKG_VERSION:=3.60
 PKG_RELEASE:=1
 
-PKG_MAINTAINER:=tty228 <tty228@yeah.net>  zzsj0928
+PKG_MAINTAINER:=konvict <logo@permails.com>
 
 LUCI_TITLE:=LuCI support for Pushbot
 LUCI_PKGARCH:=all
 LUCI_DEPENDS:=+iputils-arping +curl +jq
+LUCI_PKGMAINTAINER:=konvict <logo@permails.com>
 
 define Package/$(PKG_NAME)/conffiles
 /etc/config/pushbot
