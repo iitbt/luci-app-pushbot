@@ -412,8 +412,8 @@ msgstr "CPU 温度报警"
 msgid "Watchlist"
 msgstr "关注列表"
 
-msgid "\"PushBot\" pushes alerts and logs to various platforms.<br>Supports DingTalk, WeCom, PushPlus.<br>Originally by tty228, modified by qinian.<br><br>Report issues here:"
-msgstr "「全能推送」，英文名「PushBot」，是一款从服务器推送报警信息和日志到各平台的工具。<br>支持钉钉推送，企业微信推送，PushPlus推送。<br>本插件由tty228/luci-app-serverchan创建，然后七年修改为全能推送自用。<br /><br />如果你在使用中遇到问题，请到这里提交："
+msgid "PushBot pushes alerts and logs to various platforms.<br>Supports DingTalk, WeCom, PushPlus."
+msgstr "PushBot可将路由器的报警和日志推送到各种平台。<br>支持钉钉、企业微信、PushPlus 等等。"
 
 msgid "0 is permanent block. Use with caution.<br>If locked out, change your IP to enter LUCI and clear rules."
 msgstr "0 为永久拉黑，慎用<br>如不幸误操作，请更改设备 IP 进入 LUCI 界面清空规则"
@@ -517,3 +517,99 @@ msgstr "在推送信息标题中会标识本设备名称，用于区分推送信
 msgid "Redial skips IP change notification and delays DDNS update.<br/>Ensure redial gets a public IP, otherwise it just causes drops.<br/>Don't bother if you're on a carrier-grade NAT!"
 msgstr "重拨时不会推送 ip 变动通知，并会导致你的域名无法及时更新 ip 地址<br/>请确认你可以通过重拨获取公网 ip，否则这不仅徒劳无功还会引起频繁断网<br/>移动等大内网你就别挣扎了！！"
 
+
+
+msgid "Settings"
+msgstr "配置"
+
+msgid "Advanced Settings"
+msgstr "高级设置"
+
+msgid "Online Devices"
+msgstr "在线设备"
+
+msgid "Log"
+msgstr "日志"
+
+
+msgid "Auto Refresh"
+msgstr "自动刷新"
+
+msgid "Clear Log"
+msgstr "清除日志"
+
+
+msgid "DingTalk Bot Webhook, enter only the part after access_token=<br>Click here to get the call code<br><br>"
+msgstr "钉钉机器人 Webhook，只输入access_token=后面的即可<br>调用代码获取<a href='https://developers.dingtalk.com/document/robots/custom-robot-access' target='_blank'>点击这里</a><br><br>"
+
+msgid "WeCom Bot Webhook, enter only the part after key=<br>Click here to get the call code<br><br>"
+msgstr "企业微信机器人 Webhook，只输入key=后面的即可<br>调用代码获取<a href='https://work.weixin.qq.com/api/doc/90000/90136/91770' target='_blank'>点击这里</a><br><br>"
+
+msgid "PushPlus Token<br>Click here to get the call code<br><br>"
+msgstr "PushPlus Token<br>调用代码获取<a href='http://pushplus.plus/doc/' target='_blank'>点击这里</a><br><br>"
+
+msgid "PushPlus Custom Webhook<br>For third-party or WeCom calls<br>See here for Custom Webhook setup<br><br>"
+msgstr "PushPlus自定义Webhook<br>第三方webhook或企业微信调用<br>具体自定义Webhook设定参见：<a href='http://pushplus.plus/doc/extend/webhook.html' target='_blank'>点击这里</a><br><br>"
+
+msgid "PushPlus Group Code<br>Group code for one-to-many push<br>See here for Topic setup<br><br>"
+msgstr "PushPlus群组编码<br>一对多推送时指定的群组编码<br>具体群组编码Topic设定参见：<a href='http://www.pushplus.plus/push2.html' target='_blank'>点击这里</a><br><br>"
+
+msgid "PushDeer Key<br>Click here to get the call code<br><br>"
+msgstr "PushDeer Key<br>调用代码获取<a href='http://www.pushdeer.com/' target='_blank'>点击这里</a><br><br>"
+
+msgid "PushDeer Self-hosted Server Address<br>e.g. https://your.domain:port<br>See here for self-hosted setup<br><br>"
+msgstr "PushDeer自建服务器地址<br>如https://your.domain:port<br>具体自建服务器设定参见：<a href='http://www.pushdeer.com/selfhosted.html' target='_blank'>点击这里</a><br><br>"
+
+msgid "Feishu WebHook<br>Click here to get the call code<br><br>"
+msgstr "飞书机器人 WebHook<br>调用代码获取<a href='https://www.feishu.cn/hc/zh-CN/articles/360024984973' target='_blank'>点击这里</a><br><br>"
+
+msgid "Bark Token<br>Click here to get the call code<br><br>"
+msgstr "Bark Token<br>调用代码获取<a href='https://github.com/Finb/Bark' target='_blank'>点击这里</a><br><br>"
+
+msgid "Bark Self-hosted Server Address<br>e.g. https://your.domain:port<br>See here for self-hosted setup<br><br>"
+msgstr "Bark自建服务器地址<br>如https://your.domain:port<br>具体自建服务器设定参见：<a href='https://github.com/Finb/Bark' target='_blank'>点击这里</a><br><br>"
+
+msgid "Bark Notification Sound<br>e.g. silence.caf<br>See here for setup<br><br>"
+msgstr "Bark通知声音<br>如silence.caf<br>具体设定参见：<a href='https://github.com/Finb/Bark/tree/master/Sounds' target='_blank'>点击这里</a><br><br>"
+
+msgid "Bark Notification Icon (iOS15+ only)<br>e.g. http://day.app/assets/images/avatar.jpg<br>See here for setup<br><br>"
+msgstr "Bark通知图标(仅 iOS15 或以上支持)<br>如http://day.app/assets/images/avatar.jpg<br>具体设定参见：<a href='https://github.com/Finb/Bark#%E5%85%B6%E4%BB%96%E5%8F%82%E6%95%B0' target='_blank'>点击这里</a><br><br>"
+
+msgid "Bark Time-Sensitive Notification<br>active: Default, screen lights up immediately.<br/>timeSensitive: Shows even in Focus mode.<br/>passive: Adds to list quietly without lighting up."
+msgstr "Bark通知时效性级别<br>可选参数值：<br/>active：不设置时的默认值，系统会立即亮屏显示通知。<br/>timeSensitive：时效性通知，可在专注状态下显示通知。<br/>passive：仅将通知添加到通知列表，不会亮屏提醒。"
+
+msgid "CPU Load Alarm Threshold"
+msgstr "负载报警阈值"
+
+msgid "Temperature Alarm Threshold"
+msgstr "温度报警阈值"
+
+msgid "Bandwidth Limit Per Minute"
+msgstr "每分钟流量限制"
+
+msgid "Max Failed Login Attempts"
+msgstr "错误尝试次数"
+
+msgid "Blacklist Duration (s)"
+msgstr "拉黑时间(秒)"
+
+msgid "Disable"
+msgstr "关闭"
+
+msgid " Hours"
+msgstr "小时"
+
+msgid "OpenWrt Router Status:"
+msgstr "OpenWrt 路由状态："
+
+msgid "Custom Temperature Command"
+msgstr "自定义温度读取命令"
+
+msgid "System Uptime Greater Than"
+msgstr "系统运行时间大于"
+
+msgid "Network Uptime Greater Than"
+msgstr "网络在线时间大于"
+
+msgid "Max Daily Retries"
+msgstr "当天最大重试次数"
