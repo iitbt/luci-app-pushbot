@@ -7,19 +7,16 @@ local sys = require "luci.sys"
 local ifaces = sys.net:devices()
 
 m=Map("pushbot",translate("PushBot"),
-translate(""PushBot" pushes alerts and logs to various platforms.<br>Supports DingTalk, WeCom, PushPlus.<br>Originally by tty228, modified by qinian.<br><br>Report issues here:")
-.. [[<a href="https://github.com/zzsj0928/luci-app-pushbot" target="_blank">]]
-.. translate("GitHub Project URL")
-.. [[</a>]]
+translate("“PushBot”可将路由器的报警和日志推送到各种平台。<br>支持钉钉、企业微信、PushPlus 等等。")
 )
 
 m:section(SimpleSection).template  = "pushbot/pushbot_status"
 
 s=m:section(NamedSection,"pushbot","pushbot",translate(""))
-s:tab("basic", translate("Basic Settings"))
-s:tab("content", translate("Push Content"))
-s:tab("crontab", translate("Scheduled Push"))
-s:tab("disturb", translate("Do Not Disturb (DND)"))
+s:tab("basic", translate("基本设置"))
+s:tab("content", translate("推送内容"))
+s:tab("crontab", translate("定时推送"))
+s:tab("disturb", translate("免打扰"))
 s.addremove = false
 s.anonymous = true
 
