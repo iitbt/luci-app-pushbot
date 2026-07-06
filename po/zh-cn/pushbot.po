@@ -473,7 +473,7 @@ msgid "MAC Filter"
 msgstr "MAC过滤"
 
 msgid "PushBot"
-msgstr "PushBot"
+msgstr "全能推送"
 
 msgid "Hint"
 msgstr "提示"
