@@ -7,7 +7,14 @@ local sys = require "luci.sys"
 local ifaces = sys.net:devices()
 
 m=Map("pushbot",translate("PushBot"),
-translate("PushBot可将路由器的报警和日志推送到各种平台。<br>支持钉钉、企业微信、PushPlus 等等。")
+translate("PushBot可将路由器的报警和日志推送到各种平台。<br>支持钉钉、企业微信、PushPlus 等等。") ..
+[[<style>
+input[type="checkbox"] {
+    vertical-align: middle !important;
+    position: relative;
+    top: 1px;
+}
+</style>]]
 )
 
 m:section(SimpleSection).template  = "pushbot/pushbot_status"
