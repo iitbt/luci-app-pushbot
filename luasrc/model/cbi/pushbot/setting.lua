@@ -46,6 +46,8 @@ a=s:taboption("basic", ListValue,"jsonpath",translate("Push Mode"))
 a.default="/usr/bin/pushbot/api/dingding.json"
 a.rmempty = true
 a:value("/usr/bin/pushbot/api/telegram.json",translate("Telegram Bot"))
+a:value("/usr/bin/pushbot/api/slack.json",translate("Slack"))
+a:value("/usr/bin/pushbot/api/mattermost.json",translate("Mattermost"))
 a:value("/usr/bin/pushbot/api/dingding.json",translate("DingTalk"))
 a:value("/usr/bin/pushbot/api/ent_wechat.json",translate("WeCom"))
 a:value("/usr/bin/pushbot/api/feishu.json",translate("Feishu"))
@@ -61,6 +63,14 @@ a:depends("jsonpath","/usr/bin/pushbot/api/telegram.json")
 a=s:taboption("basic", Value,"tg_chatid",translate('Telegram Chat ID'), translate("Telegram Chat ID<br>Can be user id or group id<br><br>"))
 a.rmempty = true
 a:depends("jsonpath","/usr/bin/pushbot/api/telegram.json")
+
+a=s:taboption("basic", Value,"slack_webhook",translate('Slack Webhook URL'), translate("Slack Incoming Webhook URL<br>Starts with https://hooks.slack.com/services/<br><br>"))
+a.rmempty = true
+a:depends("jsonpath","/usr/bin/pushbot/api/slack.json")
+
+a=s:taboption("basic", Value,"mattermost_webhook",translate('Mattermost Webhook URL'), translate("Mattermost Incoming Webhook URL<br>Starts with https://your-mattermost/hooks/<br><br>"))
+a.rmempty = true
+a:depends("jsonpath","/usr/bin/pushbot/api/mattermost.json")
 
 a=s:taboption("basic", Value,"dd_webhook",translate('Webhook'), translate("DingTalk Bot Webhook, enter only the part after access_token=<br>Click here to get the call code<br><br>"))
 a.rmempty = true

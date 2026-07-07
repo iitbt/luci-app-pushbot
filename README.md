@@ -21,9 +21,10 @@ This plugin supports the vast majority of mainstream notification platforms:
 - **WeCom Bot / WeCom App** (企业微信)
 - **Feishu Bot** (飞书机器人)
 - **PushPlus** (Supports pushing to WeChat Official Accounts and group pushes)
-- **Bark** (A custom notification service designed for iOS users, supporting custom icons/sounds)
-- **PushDeer** (An app-less push service based on Apple App Clips)
+- **Bark** (iOS system-level notifications)
 - **Telegram Bot** (Native support)
+- **Slack** (Incoming Webhook)
+- **Mattermost** (Incoming Webhook)
 - **Custom Webhook** (DIY interface, easily compatible with platforms like ServerChan, etc.)
 
 ## Core Features
@@ -81,9 +82,10 @@ CONFIG_PACKAGE_luci-app-pushbot=y
 - **企业微信机器人** / **企业微信应用** (WeCom)
 - **飞书机器人** (Feishu)
 - **PushPlus**（支持推送到微信公众号，支持一对多群组推送）
-- **Bark**（专为 iOS 用户设计的自定义通知服务，支持自定义图标/声音）
-- **PushDeer**（无 App 推送服务，基于苹果轻应用）
+- **Bark**（iOS 系统级推送）
 - **Telegram Bot**（原生完美支持）
+- **Slack**（通过 Incoming Webhook）
+- **Mattermost**（通过 Incoming Webhook）
 - **自定义 Webhook**（DIY 接口，轻松兼容 Server酱 等平台）
 
 ## 核心功能

@@ -637,3 +637,21 @@ msgstr "Telegram 机器人 Token<br>通过 @BotFather 创建<br><br>"
 
 msgid "Telegram Chat ID<br>Can be user id or group id<br><br>"
 msgstr "Telegram 会话 ID<br>可以是用户 ID 或者群组 ID<br><br>"
+
+msgid "Slack"
+msgstr "Slack"
+
+msgid "Slack Webhook URL"
+msgstr "Slack Webhook URL"
+
+msgid "Slack Incoming Webhook URL<br>Starts with https://hooks.slack.com/services/<br><br>"
+msgstr "Slack Webhook 机器人地址<br>以 https://hooks.slack.com/services/ 开头<br><br>"
+
+msgid "Mattermost"
+msgstr "Mattermost"
+
+msgid "Mattermost Webhook URL"
+msgstr "Mattermost Webhook URL"
+
+msgid "Mattermost Incoming Webhook URL<br>Starts with https://your-mattermost/hooks/<br><br>"
+msgstr "Mattermost Webhook 机器人地址<br>以 https://你的域名/hooks/ 开头<br><br>"
