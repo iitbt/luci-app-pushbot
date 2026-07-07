@@ -613,3 +613,12 @@ msgstr "网络在线时间大于"
 
 msgid "Max Daily Retries"
 msgstr "当天最大重试次数"
+
+msgid "Online Devices List"
+msgstr "在线设备列表"
+
+msgid "Hostname"
+msgstr "客户端名"
+
+msgid "Online Time"
+msgstr "在线时间"
