@@ -76,7 +76,7 @@ function pushbot_init(){
 	enable_detection
 	if [ -f "/usr/bin/pushbot/errlog" ]; then
 		cat /usr/bin/pushbot/errlog > ${logfile}
-		echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！！】载入上次重启前日志" >> ${logfile}
+		echo "`date "+%Y-%m-%d %H:%M:%S"` [!!!] Loading logs before last reboot" >> ${logfile}
 		echo "--------------------------------------------------------" >> ${logfile}
 	fi
 	down_oui &
@@ -85,11 +85,11 @@ function pushbot_init(){
 	add_ip_black
 	
 	rm -f ${dir}fd1 ${dir}sheep_usage ${dir}old_sheep_usage ${dir}client_usage_aliases ${dir}old_client_usage_aliases /usr/bin/pushbot/errlog >/dev/null 2>&1
-	[ ! -f "/usr/sbin/wrtbwmon" ] && echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！！】未安装 wrtbwmon ，流量统计不可用" >> ${logfile}
-	[ -z "$ip_version" ] && echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！！】无法获取依赖项 iputils-arping 版本号，请确认插件是否正常运行" >> ${logfile}
-	[ -z "$cu_version" ] && echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！！】无法获取依赖项 curl 版本号，请确认插件是否正常运行" >> ${logfile}
-	[ -z "${api_url}${dd_webhook}${pp_token}${we_webhook}${fs_webhook}${bark_token}${pushdeer_key}" ] && echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！！】请填写正确的Token/Webhook " >> ${logfile} && return 1
-	local interfacelist=`getinterfacelist` && [ -z "$interfacelist" ] && echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！！】无法正确获取接口信息，请确认插件是否正常运行" >> ${logfile}
+	[ ! -f "/usr/sbin/wrtbwmon" ] && echo "`date "+%Y-%m-%d %H:%M:%S"` [!!!] wrtbwmon not installed, traffic statistics unavailable" >> ${logfile}
+	[ -z "$ip_version" ] && echo "`date "+%Y-%m-%d %H:%M:%S"` [!!!] Cannot get dependency iputils-arping version, please check if the plugin is running correctly" >> ${logfile}
+	[ -z "$cu_version" ] && echo "`date "+%Y-%m-%d %H:%M:%S"` [!!!] Cannot get dependency curl version, please check if the plugin is running correctly" >> ${logfile}
+	[ -z "${api_url}${dd_webhook}${pp_token}${we_webhook}${fs_webhook}${bark_token}${pushdeer_key}" ] && echo "`date "+%Y-%m-%d %H:%M:%S"` [!!!] Please enter correct Token/Webhook " >> ${logfile} && return 1
+	local interfacelist=`getinterfacelist` && [ -z "$interfacelist" ] && echo "`date "+%Y-%m-%d %H:%M:%S"` [!!!] Cannot get interface info correctly, please check if the plugin is running correctly" >> ${logfile}
 	return 0
 }
 
@@ -101,10 +101,10 @@ function diy_send(){
 	local data=`/usr/bin/jq -r '.data' ${3}` && local data=`eval echo ${data}`
 	local content_type=`/usr/bin/jq -r '.content_type' ${3}`
 	/usr/bin/jq ".type + $type" ${jsonpath} > ${tempjsonpath}
-	/usr/bin/jq -r '.[]' ${tempjsonpath}|grep -w "null" && echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！！】参数值错误，请检查设置项  `/usr/bin/jq -r '.' ${tempjsonpath}|grep "null"`" >> ${logfile} && return 1
+	/usr/bin/jq -r '.[]' ${tempjsonpath}|grep -w "null" && echo "`date "+%Y-%m-%d %H:%M:%S"` [!!!] Parameter value error, please check settings  `/usr/bin/jq -r '.' ${tempjsonpath}|grep "null"`" >> ${logfile} && return 1
 	[ -f ${tempjsonpath} ] && local logrow=$(grep -c "" ${tempjsonpath}) || local logrow="0"
-	[ $logrow -eq "0" ] && echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！！】json 文件生成失败，请检查文件格式" >> ${logfile} && return 1
-	/usr/bin/jq -r '.[]' ${tempjsonpath}|grep "null" && echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！！】参数变量生成失败，请检查设置项 `/usr/bin/jq -r '.' ${tempjsonpath}|grep "null"`" >> ${logfile}
+	[ $logrow -eq "0" ] && echo "`date "+%Y-%m-%d %H:%M:%S"` [!!!] JSON file generation failed, please check file format" >> ${logfile} && return 1
+	/usr/bin/jq -r '.[]' ${tempjsonpath}|grep "null" && echo "`date "+%Y-%m-%d %H:%M:%S"` [!!!] Parameter variable generation failed, please check settings `/usr/bin/jq -r '.' ${tempjsonpath}|grep "null"`" >> ${logfile}
 	
 	curl -X POST -H "$content_type" -d "${data}" "${diyurl}"
 }
@@ -114,16 +114,16 @@ function down_oui(){
 	[ -f ${oui_base} ] && local logrow=$(grep -c "" ${oui_base}) || local logrow="0"
 	[ $logrow -lt "10" ] && rm -f ${oui_base} >/dev/null 2>&1
 	if [ ! -z "$oui_data" ] && [ "$oui_data" -ne "3" ] && [ ! -f ${oui_base} ]; then
-		echo "`date "+%Y-%m-%d %H:%M:%S"` 【初始化】设备MAC厂商信息不存在，重新下载" >> ${logfile}
+		echo "`date "+%Y-%m-%d %H:%M:%S"` [Init] MAC OUI info not found, downloading again" >> ${logfile}
 		wget --no-check-certificate -t 3 -T 15 -O ${dir}oui.txt https://standards-oui.ieee.org/oui/oui.txt >/dev/null 2>&1
 		if [ -f ${dir}oui.txt ] && [ "$oui_data" -eq "1" ]; then
 			cat ${dir}oui.txt|grep "base 16"|grep -i "apple\|aruba\|asus\|autelan\|belkin\|bhu\|buffalo\|cctf\|cisco\|comba\|datang\|dell\|dlink\|dowell\|ericsson\|fast\|feixun\|\
 fiberhome\|fujitsu\|grentech\|h3c\|hisense\|hiwifi\|honghai\|honghao\|hp\|htc\|huawei\|intel\|jinli\|jse\|lenovo\|lg\|liteon\|malata\|meizu\|mercury\|meru\|moto\|netcore\|\
 netgear\|nokia\|omron\|oneplus\|oppo\|philips\|router_unkown\|samsung\|shanzhai\|sony\|start_net\|sunyuanda\|tcl\|tenda\|texas\|tianyu\|tp-link\|ubq\|undefine\|VMware\|\
-utstarcom\|volans\|xerox\|xiaomi\|zdc\|zhongxing\|smartisan" > ${oui_base} && echo "`date "+%Y-%m-%d %H:%M:%S"` 【初始化】设备MAC厂商信息下载成功" >> ${logfile} || echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！！】设备MAC厂商信息下载失败" >> ${logfile} 
+utstarcom\|volans\|xerox\|xiaomi\|zdc\|zhongxing\|smartisan" > ${oui_base} && echo "`date "+%Y-%m-%d %H:%M:%S"` [Init] MAC OUI info downloaded successfully" >> ${logfile} || echo "`date "+%Y-%m-%d %H:%M:%S"` [!!!] MAC OUI info download failed" >> ${logfile} 
 		fi
 		if [ -f ${dir}oui.txt ] && [ "$oui_data" -eq "2" ]; then
-			cat ${dir}oui.txt|grep "base 16" > ${oui_base} && echo "`date "+%Y-%m-%d %H:%M:%S"` 【初始化】设备MAC厂商信息下载成功" >> ${logfile} || echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！！】设备MAC厂商信息下载失败" >> ${logfile}
+			cat ${dir}oui.txt|grep "base 16" > ${oui_base} && echo "`date "+%Y-%m-%d %H:%M:%S"` [Init] MAC OUI info downloaded successfully" >> ${logfile} || echo "`date "+%Y-%m-%d %H:%M:%S"` [!!!] MAC OUI info download failed" >> ${logfile}
 		fi
 		rm -f ${dir}oui.txt >/dev/null 2>&1
 	fi
@@ -135,7 +135,7 @@ function deltemp(){
 	rm -f ${dir}title ${dir}content ${dir}tmp_downlist ${dir}send_enable.lock ${tempjsonpath} >/dev/null 2>&1
 	LockFile unlock
 	[ -f ${logfile} ] && local logrow=$(grep -c "" ${logfile}) || local logrow="0"
-	[ $logrow -gt 500 ] && sed -i '1,100d' ${logfile} && echo "`date "+%Y-%m-%d %H:%M:%S"`  【清理】日志超出上限，删除前 100 条" >> ${logfile}
+	[ $logrow -gt 500 ] && sed -i '1,100d' ${logfile} && echo "`date "+%Y-%m-%d %H:%M:%S"`  [Cleanup] Log limit exceeded, deleting first 100 lines" >> ${logfile}
 }
 
 # 检测程序开关
@@ -468,14 +468,14 @@ function pushbot_disturb(){
 		disturb_text=`/usr/bin/jq -r '._api' ${jsonpath}`
 		return 0
 	else
-		[ -z "$sheep_starttime" ] && echo "`date "+%Y-%m-%d %H:%M:%S"` 【免打扰】夜深了，该休息了" >> ${logfile} && sheep_starttime=`date +%s`
+		[ -z "$sheep_starttime" ] && echo "`date "+%Y-%m-%d %H:%M:%S"` [DND] Late night, time to rest" >> ${logfile} && sheep_starttime=`date +%s`
 		if [ "$pushbot_sheep" -eq "1" ] ;then
 			while [ `date +%H` -lt "$endtime" ]; do
 				enable_detection
 				sleep $sleeptime
 			done
 		elif  [ "$pushbot_sheep" -eq "2" ] ;then
-			disturb_text="【免打扰】"
+			disturb_text="[DND] "
 			return 1
 		fi
 	fi
@@ -576,11 +576,11 @@ function unattended(){
 	if [ ! -z "$system_time_event" ]; then
 		local interfaceuptime=`getinterfaceuptime`
 		if [ ! -z "$autoreboot_time" ] && [ `cat /proc/uptime|awk -F. '{run_hour=$1/3600;printf("%d",run_hour)}'` -ge "$autoreboot_time" ] && [ "$system_time_event" -eq "1" ]; then
-			echo "`date "+%Y-%m-%d %H:%M:%S"` 【无人值守任务】重启路由器咯" >> ${logfile}
+			echo "`date "+%Y-%m-%d %H:%M:%S"` [Unattended Task] Rebooting router" >> ${logfile}
 			cat ${logfile} > /usr/bin/pushbot/errlog
 			sleep 2 && reboot && exit
 		elif [ ! -z "$network_restart_time" ] && [ ! -z "$interfaceuptime" ] && [ `echo "$interfaceuptime"|awk -F. '{run_hour=$1/3600;printf("%d",run_hour)}'` -ge "$network_restart_time" ] && [ "$system_time_event" -eq "2" ]; then
-			echo "`date "+%Y-%m-%d %H:%M:%S"` 【无人值守任务】重新拨号咯" >> ${logfile}
+			echo "`date "+%Y-%m-%d %H:%M:%S"` [Unattended Task] Redialing" >> ${logfile}
 			ifup wan >/dev/null 2>&1
 			sleep 60
 		fi
@@ -594,7 +594,7 @@ function unattended(){
 		local wanIP=`getip wanipv4`
 		local hostIP=`getip hostipv4`
 		if [ ! -z "$wanIP" ] && [ ! -z "$hostIP" ] && ( ! echo "$wanIP"|grep -q -w ${hostIP} );then
-			echo "`date "+%Y-%m-%d %H:%M:%S"` 【无人值守任务】重拨尝试获取公网 ip，当前第 $public_ip_count 次 " >> ${logfile}
+			echo "`date "+%Y-%m-%d %H:%M:%S"` [Unattended Task] Redial attempt to get public IP, current attempt $public_ip_count time " >> ${logfile}
 			ifup wan >/dev/null 2>&1
 			sleep 60
 			local wanIP=`getip wanipv4` && local hostIP=`getip hostipv4`
@@ -619,7 +619,7 @@ function rand_geturl(){
 	while [ -z "$check" ] || [ "$check" -ne "200" ]; do
 		local check=`getcheck`
 		if [ ! -z "$check" ] && [ "$check" -eq "200" ]; then
-			[ ! -z "$network_enable" ] && [ "$network_enable" -eq "404" ] && echo "`date "+%Y-%m-%d %H:%M:%S"` 【网络状态】${MSG_NETWORK_RESTORED}.." >> ${logfile}
+			[ ! -z "$network_enable" ] && [ "$network_enable" -eq "404" ] && echo "`date "+%Y-%m-%d %H:%M:%S"` [Network Status] ${MSG_NETWORK_RESTORED}.." >> ${logfile}
 			local network_enable="200"
 		else
 			[ -z "$network_enable" ] || [ "$network_enable" -eq "200" ] && echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！！！】${MSG_NETWORK_DOWN} " >> ${logfile}
@@ -634,19 +634,19 @@ function rand_geturl(){
 					if [ "$network_err_event" -eq "1" ] ;then
 						if [ "$retry_count" -lt "3" ] ;then
 							echo "$retry_count" > /usr/bin/pushbot/autoreboot_count
-							echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！！！】正在尝试重启路由，当前第 $retry_count 次 " >> ${logfile}
+							echo "`date "+%Y-%m-%d %H:%M:%S"` [!!!!] Attempting to reboot router, current attempt $retry_count time " >> ${logfile}
 							cat ${logfile} > /usr/bin/pushbot/errlog
 							sleep 2 && reboot && exit
 						fi
-						[ "$retry_count" -eq "3" ] && echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！！！】已经重启路由2次，修复失败，请主人自行修复哦" >> ${logfile}
+						[ "$retry_count" -eq "3" ] && echo "`date "+%Y-%m-%d %H:%M:%S"` [!!!!] Rebooted router 2 times, fix failed, please fix manually" >> ${logfile}
 					elif [ "$network_err_event" -eq "2" ] ;then
-						[ "$retry_count" -lt "3" ] && echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！！！】正在尝试重启网络，当前第 $retry_count 次 " >> ${logfile} && ifup wan >/dev/null 2>&1
-						[ "$retry_count" -eq "3" ] && echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！！！】已经重启网络2次，修复失败，请主人自行修复哦 " >> ${logfile}
+						[ "$retry_count" -lt "3" ] && echo "`date "+%Y-%m-%d %H:%M:%S"` [!!!!] Attempting to restart network, current attempt $retry_count time " >> ${logfile} && ifup wan >/dev/null 2>&1
+						[ "$retry_count" -eq "3" ] && echo "`date "+%Y-%m-%d %H:%M:%S"` [!!!!] Restarted network 2 times, fix failed, please fix manually " >> ${logfile}
 					elif [ "$network_err_event" -eq "3" ] ;then
 						if [ "$retry_count" -eq "1" ] ;then
-							echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！！！】正在尝试修复网络，当前第 1 次，重启网络服务中 " >> ${logfile} && network_restart
+							echo "`date "+%Y-%m-%d %H:%M:%S"` [!!!!] Attempting to fix network, 1st time, restarting network service " >> ${logfile} && network_restart
 						elif [ "$retry_count" -eq "2" ] ;then
-							echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！！！】正在尝试修复网络，当前第 2 次，关闭可能造成网络断开的软件" >> ${logfile}
+							echo "`date "+%Y-%m-%d %H:%M:%S"` [!!!!] Attempting to fix network, 2nd time, stopping conflicting software" >> ${logfile}
 							[ `uci get koolproxy.@global[0].enabled 2>/dev/null` -eq "1" ] && [ `uci get koolproxy.@global[0].koolproxy_mode 2>/dev/null` -eq "1" ] && /etc/init.d/koolproxy stop >/dev/null 2>&1
 							[ `uci get adbyby.@adbyby[0].enable 2>/dev/null` -eq "1" ] && [ `uci get adbyby.@adbyby[0].wan_mode 2>/dev/null` -eq "0" ] && /etc/init.d/adbyby stop >/dev/null 2>&1
 							[ `uci get passwall.@global[0].enabled 2>/dev/null` -eq "1" ] && [ `uci get passwall.@global[0].proxy_mode 2>/dev/null|grep global` ] && /etc/init.d/koolproxy stop >/dev/null 2>&1
@@ -655,7 +655,7 @@ function rand_geturl(){
 							[ -z "$shadowsocksr_enabled" ] && [ ! -z "$shadowsocksr_run_mode" ] && /etc/init.d/shadowsocksr stop >/dev/null 2>&1
 							sleep 60 && network_restart
 						elif [ "$retry_count" -eq "3" ] ;then
-							echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！！！】正在尝试修复网络，当前第 3 次，备份设置项，并修改相关设置" >> ${logfile}
+							echo "`date "+%Y-%m-%d %H:%M:%S"` [!!!!] Attempting to fix network, 3rd time, backing up and modifying settings" >> ${logfile}
 							mkdir -p /usr/bin/pushbot/configbak
 							cp -p -f /etc/config/network /usr/bin/pushbot/configbak/network
 							cp -p -f /etc/config/dhcp /usr/bin/pushbot/configbak/dhcp
@@ -682,7 +682,7 @@ function rand_geturl(){
 							sleep 2 && reboot && exit
 						elif [ "$retry_count" -eq "5" ] ;then
 							echo "$retry_count" > /usr/bin/pushbot/autoreboot_count
-							echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！！！】修复失败，还原设置中，请自行检查网络设置" >> ${logfile}
+							echo "`date "+%Y-%m-%d %H:%M:%S"` [!!!!] Fix failed, restoring settings, please check network settings" >> ${logfile}
 							cp -p -f /usr/bin/pushbot/configbak/network /etc/config/network
 							cp -p -f /usr/bin/pushbot/configbak/dhcp /etc/config/dhcp
 							cp -p -f /usr/bin/pushbot/configbak/firewall /etc/config/firewall
@@ -714,33 +714,33 @@ function ip_changes(){
 		local last_IPv4=$(cat "${dir}ip"|grep IPv4|awk '{print $2}'|grep -v "^$"|sort -u|head -n1)
 		local last_IPv6=$(cat "${dir}ip"|grep IPv6|awk '{print $2}'|grep -v "^$"|sort -u|head -n1)
 		if [ ! -z "$pushbot_ipv4" ] && [ "$pushbot_ipv4" -ne "0" ] && [ ! -z "$IPv4" ] && ( ! echo ${IPv4}|grep -w -q ${last_IPv4} ); then
-			echo "`date "+%Y-%m-%d %H:%M:%S"` ${disturb_text}当前IP：${IPv4}" >> ${logfile}
+			echo "`date "+%Y-%m-%d %H:%M:%S"` ${disturb_text}Current IP: ${IPv4}" >> ${logfile}
 			echo IPv4 $IPv4 > ${dir}ip && echo -e IPv6 $last_IPv6 >> ${dir}ip
 			title="${MSG_IP_CHANGE}"
 			content="${content}${str_splitline}${str_title_start}${font_green} ${MSG_IP_CHANGE}${font_end}${str_title_end}${str_linefeed}${str_tab}${MSG_CUR_IP}: ${IPv4}"
 		elif [ ! -z "$pushbot_ipv4" ] && [ "$pushbot_ipv4" -ne "0" ] && [ -z "$IPv4" ]; then
-			echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！！】获取 IPv4 地址失败" >> ${logfile}
+			echo "`date "+%Y-%m-%d %H:%M:%S"` [!!!] Failed to get IPv4 address" >> ${logfile}
 		fi
 
 		if [ ! -z "$pushbot_ipv6" ] && [ "$pushbot_ipv6" -ne "0" ] && [ ! -z "$IPv6" ] && ( ! echo "$IPv6"|grep -w -q ${last_IPv6} ); then
-			echo "`date "+%Y-%m-%d %H:%M:%S"` ${disturb_text}当前IPv6：${IPv6}" >> ${logfile}
+			echo "`date "+%Y-%m-%d %H:%M:%S"` ${disturb_text}Current IPv6: ${IPv6}" >> ${logfile}
 			echo IPv4 $IPv4 > ${dir}ip && echo -e IPv6 $IPv6 >> ${dir}ip
 			[ -z "$title" ] && title="${MSG_IPV6_CHANGE}"
 			[ ! -z "$title" ] && title="${MSG_IP_CHANGE}"
 			content="${content}${str_splitline}${str_title_start}${font_green} ${MSG_IPV6_CHANGE}${font_end}${str_title_end}${str_linefeed}${str_tab}${MSG_CUR_IPV6}: ${IPv6}"
 		elif [ ! -z "$pushbot_ipv6" ] && [ "$pushbot_ipv6" -ne "0" ] && [ -z "$IPv6" ]; then
-			echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！！】获取 IPv6 地址失败" >> ${logfile}
+			echo "`date "+%Y-%m-%d %H:%M:%S"` [!!!] Failed to get IPv6 address" >> ${logfile}
 		fi
 
 	else
-		echo "`date "+%Y-%m-%d %H:%M:%S"` ${disturb_text}路由器已经重启!" >> ${logfile}
-		[ ! -z "$pushbot_ipv4" ] && [ "$pushbot_ipv4" -ne "0" ] && echo "`date "+%Y-%m-%d %H:%M:%S"`  当前IP: ${IPv4}" >> ${logfile}
-		[ ! -z "$pushbot_ipv6" ] && [ "$pushbot_ipv6" -ne "0" ] && echo "`date "+%Y-%m-%d %H:%M:%S"`  当前IPv6: ${IPv6}" >> ${logfile}
+		echo "`date "+%Y-%m-%d %H:%M:%S"` ${disturb_text}Router has restarted!" >> ${logfile}
+		[ ! -z "$pushbot_ipv4" ] && [ "$pushbot_ipv4" -ne "0" ] && echo "`date "+%Y-%m-%d %H:%M:%S"`  Current IP:  ${IPv4}" >> ${logfile}
+		[ ! -z "$pushbot_ipv6" ] && [ "$pushbot_ipv6" -ne "0" ] && echo "`date "+%Y-%m-%d %H:%M:%S"`  Current IPv6:  ${IPv6}" >> ${logfile}
 		echo IPv4 $IPv4 > ${dir}ip && echo -e IPv6 $IPv6 >> ${dir}ip	
 		title="${MSG_ROUTER_REBOOTED}"
 		content="${content}${str_splitline}${str_title_start}${font_green} ${MSG_ROUTER_REBOOTED}${font_end}${str_title_end}"
-		[ ! -z "$pushbot_ipv4" ] && [ "$pushbot_ipv4" -ne "0" ] && content="${content}${str_linefeed}${str_tab}当前IP：${IPv4}"
-		[ ! -z "$pushbot_ipv6" ] && [ "$pushbot_ipv6" -ne "0" ] && content="${content}${str_linefeed}${str_tab}当前IPv6：${IPv6}"
+		[ ! -z "$pushbot_ipv4" ] && [ "$pushbot_ipv4" -ne "0" ] && content="${content}${str_linefeed}${str_tab}Current IP: ${IPv4}"
+		[ ! -z "$pushbot_ipv6" ] && [ "$pushbot_ipv6" -ne "0" ] && content="${content}${str_linefeed}${str_tab}Current IPv6: ${IPv6}"
 	fi
 
 	if [ ! -z "$content" ] ;then
@@ -800,7 +800,7 @@ function up(){
 				local title="${MSG_DEVICE_STATUS_CHANGE}"
 				local content="${str_splitline}${str_title_start}${font_green} ${MSG_NEW_DEVICE_CONNECTED}${font_end}${str_title_end}${str_linefeed}${str_tab}${MSG_CLIENT_NAME}: ${str_space}${str_space}${str_space}${str_space}${str_space}${ip_name}${str_linefeed}${str_tab}${MSG_CLIENT_IP}: ${str_space}${str_space}${str_space}${str_space}${1}${str_linefeed}${str_tab}${MSG_CLIENT_MAC}: ${str_space}${str_space}${str_space}${str_space}${ip_mac}${str_linefeed}${str_tab}${MSG_NET_INTERFACE}: ${str_space}${str_space}${str_space}${str_space}${str_space}${ip_interface}"
 			fi
-			echo "`date "+%Y-%m-%d %H:%M:%S"` ${disturb_text}新设备 ${ip_name} ${1} 连接了">> ${logfile}
+			echo "`date "+%Y-%m-%d %H:%M:%S"` ${disturb_text}New device ${ip_name} ${1} connected">> ${logfile}
 			#[ ! -z "$pushbot_blacklist" ] && local title="你偷偷关注的设备上线了"
 			[ ! -z "$title" ] && echo "$title" >${dir}title
 			[ ! -z "$content" ] && echo -n "$content" >>${dir}content
@@ -860,7 +860,7 @@ function down_send(){
 			title="${MSG_DEVICE_STATUS_CHANGE}"
 			content="${content}${str_splitline}${str_title_start}${font_red} ${MSG_DEVICE_DISCONNECTED}${font_end}${str_title_end}${str_linefeed}${str_tab}${MSG_CLIENT_NAME}: ${str_space}${str_space}${str_space}${str_space}${str_space}${ip_name}${str_linefeed}${str_tab}${MSG_CLIENT_IP}: ${str_space}${str_space}${str_space}${str_space}${ip}${str_linefeed}${str_tab}${MSG_CLIENT_MAC}: ${str_space}${str_space}${str_space}${str_space}${ip_mac}$ip_total${str_linefeed}${str_tab}${MSG_ONLINE_TIME}: ${str_space}${str_space}${str_space}${str_space}${time1}"
 		fi
-		echo "`date "+%Y-%m-%d %H:%M:%S"` ${disturb_text}设备 ${ip_name} ${ip} ${MSG_DISCONNECTED} " >> ${logfile}
+		echo "`date "+%Y-%m-%d %H:%M:%S"` ${disturb_text}Device ${ip_name} ${ip} ${MSG_DISCONNECTED} " >> ${logfile}
 	done
 	rm -f ${dir}tmp_downlist >/dev/null 2>&1
 }
@@ -900,10 +900,10 @@ function cpu_load(){
 	if [ ! -z "$temperature_enable" ] && [ "$temperature_enable" -eq "1" ] && [ ! -z "$temperature" ]; then
 		[ -z "$temperature_time" ] && temperature_time=`date +%s`
 		local cpu_wendu=`soc_temp`;
-		[ -z "$cpu_wendu" ] && echo "`date "+%Y-%m-%d %H:%M:%S"`  【！！！】无法读取${MSG_DEVICE_TEMP}，请检查命令" >> ${logfile}
+		[ -z "$cpu_wendu" ] && echo "`date "+%Y-%m-%d %H:%M:%S"`  [!!!] Cannot read ${MSG_DEVICE_TEMP}, please check command" >> ${logfile}
 
 		if [ `expr $cpu_wendu \> $temperature` -eq "1" ]; then
-			echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！警报！！】 ${MSG_CPU_TEMP_HIGH}: ${cpu_wendu}" >> ${logfile}
+			echo "`date "+%Y-%m-%d %H:%M:%S"` [!!ALERT!!] ${MSG_CPU_TEMP_HIGH}: ${cpu_wendu}" >> ${logfile}
 		else
 			temperature_time=`date +%s`
 		fi
@@ -921,10 +921,10 @@ function cpu_load(){
 	if [ ! -z "$cpuload_enable" ] && [ "$cpuload_enable" -eq "1" ] && [ ! -z "$cpuload" ]; then
 		[ -z "$cpuload_time" ] && cpuload_time=`date +%s`
 		local cpu_fuzai=`cat /proc/loadavg|awk '{print $1}'` 2>/dev/null
-		[ -z "$cpu_fuzai" ] && echo "`date "+%Y-%m-%d %H:%M:%S"`  【！！！】无法读取设备负载，请检查命令" >> ${logfile}
+		[ -z "$cpu_fuzai" ] && echo "`date "+%Y-%m-%d %H:%M:%S"`  [!!!] Cannot read device load, please check command" >> ${logfile}
 
 		if [ `expr $cpu_fuzai \> $cpuload` -eq "1" ]; then
-			echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！警报！！】 ${MSG_CPU_LOAD_HIGH}: ${cpu_fuzai}" >> ${logfile}
+			echo "`date "+%Y-%m-%d %H:%M:%S"` [!!ALERT!!] ${MSG_CPU_LOAD_HIGH}: ${cpu_fuzai}" >> ${logfile}
 			cputop log
 		else
 			cpuload_time=`date +%s`
@@ -938,7 +938,7 @@ function cpu_load(){
 				title="${MSG_CPU_LOAD_HIGH}！"
 			fi
 			cpucd_time=`date +%s`
-			echo "`date "+%Y-%m-%d %H:%M:%S"` ${disturb_text} CPU 负 载过高: ${cpu_fuzai}" >> ${logfile}
+			echo "`date "+%Y-%m-%d %H:%M:%S"` ${disturb_text} CPU Load Too High: ${cpu_fuzai}" >> ${logfile}
 			content="${content}${str_splitline}${font_red}${MSG_CPU_LOAD_HIGH}${font_end}${str_linefeed}${str_tab}CPU 负载已连续五分钟超过预设${str_linefeed}${str_tab}${MSG_WARN_MUTE_1HR}${str_linefeed}${str_tab}${MSG_CUR_LOAD}: ${cpu_fuzai}"
 			cputop
 		elif [ ! -z "$cpucd_time" ] && [ "$((`date +%s`-$cpucd_time))" -ge "3300" ] ;then
@@ -958,7 +958,7 @@ function cputop(){
 		[ -z "$1" ] && content="${content}${str_linefeed}${str_tab}${temp_top}"
 	done
 	unset i
-	[ ! -z "$1" ] && echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！警报！！】 CPU 占用前三: ${logtop}" >> ${logfile}
+	[ ! -z "$1" ] && echo "`date "+%Y-%m-%d %H:%M:%S"` [!!ALERT!!] Top 3 CPU Processes: ${logtop}" >> ${logfile}
 }
 
 # 生成日志监控文件，避免后台影响 wait 语句
@@ -1004,7 +1004,7 @@ function login_send(){
 				content="${content}${str_splitline}${str_title_start}${font_green} ${MSG_LOGIN_SUCCESS}${font_end}${str_title_end}${str_linefeed}${str_tab}${MSG_TIME}: ${str_space}${str_space}${str_space}${str_space}${str_space}${web_login_time}${str_linefeed}${str_tab}${MSG_DEVICE_IP}: ${str_space}${str_space}${str_space}${str_space}${login_ip}${content_mode}"
 			fi
 		fi
-		echo "`date "+%Y-%m-%d %H:%M:%S"` ${disturb_text}设备 ${login_ip} 通过 web ${web_login_mode} ${MSG_LOGGED_INTO_ROUTER} " >> ${logfile}
+		echo "`date "+%Y-%m-%d %H:%M:%S"` ${disturb_text}Device ${login_ip} via web ${web_login_mode} ${MSG_LOGGED_INTO_ROUTER} " >> ${logfile}
 	done
 	echo "" > ${dir}web_login
 	unset login_ip login_ip_list
@@ -1018,7 +1018,7 @@ function login_send(){
 		[ ! -z "$ssh_login_mode" ] && local content_mode="${str_linefeed}${str_tab}${MSG_LOGIN_MODE}: ${str_space}${str_space}${str_space}${str_space}${ssh_login_mode}"
 		if [ ! -z "$ssh_logged" ] && [ "$ssh_logged" -eq "1" ]; then
 			if [ -z "$title" ]; then
-				title="${login_ip} 通过 SSH ${MSG_LOGGED_INTO_ROUTER}"
+				title="${login_ip} via SSH ${MSG_LOGGED_INTO_ROUTER}"
 				content="${content}${str_splitline}${str_title_start}${font_green} ${MSG_LOGIN_SUCCESS}${font_end}${str_title_end}${str_linefeed}${str_tab}${MSG_TIME}: ${str_space}${str_space}${str_space}${str_space}${str_space}${ssh_login_time}${str_linefeed}${str_tab}${MSG_DEVICE_IP}: ${str_space}${str_space}${str_space}${str_space}${login_ip}${content_mode}"
 			elif ( echo "$title"|grep -q "${MSG_LOGGED_INTO_ROUTER}" ); then
 				title="${login_ip} ${title}"
@@ -1028,7 +1028,7 @@ function login_send(){
 				content="${content}${str_splitline}${str_title_start}${font_green} ${MSG_LOGIN_SUCCESS}${str_title_end}${str_linefeed}${str_tab}${MSG_TIME}: ${str_space}${str_space}${str_space}${str_space}${str_space}${ssh_login_time}${str_linefeed}${str_tab}${MSG_DEVICE_IP}: ${str_space}${str_space}${str_space}${str_space}${login_ip}${content_mode}"
 			fi
 		fi
-		echo "`date "+%Y-%m-%d %H:%M:%S"` 【info】设备 ${login_ip} 通过 SSH ${ssh_login_mode} ${MSG_LOGGED_INTO_ROUTER} " >> ${logfile}
+		echo "`date "+%Y-%m-%d %H:%M:%S"` [info] Device ${login_ip} via SSH ${ssh_login_mode} ${MSG_LOGGED_INTO_ROUTER} " >> ${logfile}
 	done
 	echo "" > ${dir}ssh_login
 	unset login_ip login_ip_list
@@ -1052,7 +1052,7 @@ function login_send(){
 				fi
 			fi
 			sed -i "/^${login_ip}$/d" ${dir}web_failed
-			echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！！】设备 ${login_ip} 通过 Web ${MSG_FREQ_LOGIN_ATTEMPT}" >> ${logfile}
+			echo "`date "+%Y-%m-%d %H:%M:%S"` [!!!] Device ${login_ip} via Web ${MSG_FREQ_LOGIN_ATTEMPT}" >> ${logfile}
 			add_ip_black $login_ip
 		fi
 	done
@@ -1066,7 +1066,7 @@ function login_send(){
 		if [ "$ssh_login_sum" -ge "$login_max_num" ] ;then
 			if [ ! -z "$ssh_login_failed" ] && [ "$ssh_login_failed" -eq "1" ]; then
 				if [ -z "$title" ]; then
-					title="${login_ip} 通过 SSH ${MSG_FREQ_LOGIN_ATTEMPT}"
+					title="${login_ip} via SSH ${MSG_FREQ_LOGIN_ATTEMPT}"
 					content="${content}${str_splitline}${str_title_start}${font_red} ${MSG_LOGIN_FAILED}${font_end}${str_title_end}${str_linefeed}${str_tab}${MSG_DEVICE_IP}: ${str_space}${str_space}${str_space}${str_space}${login_ip}"
 					elif ( echo "$title"|grep -q "${MSG_FREQ_LOGIN_ATTEMPT}" ); then
 						title="${login_ip} ${title}"
@@ -1077,7 +1077,7 @@ function login_send(){
 				fi
 			fi
 			sed -i "/^${login_ip}$/d" ${dir}ssh_failed
-			echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！！】设备 ${login_ip} 通过 SSH ${MSG_FREQ_LOGIN_ATTEMPT}" >> ${logfile}
+			echo "`date "+%Y-%m-%d %H:%M:%S"` [!!!] Device ${login_ip} via SSH ${MSG_FREQ_LOGIN_ATTEMPT}" >> ${logfile}
 			add_ip_black $login_ip
 		fi
 	done
@@ -1110,7 +1110,7 @@ function add_ip_black(){
 
 # 发送定时数据
 function send(){
-	echo "`date "+%Y-%m-%d %H:%M:%S"` 【定时数据】创建定时任务" >> ${logfile}
+	echo "`date "+%Y-%m-%d %H:%M:%S"` [Cron Data] Created scheduled task" >> ${logfile}
 	pushbot_disturb;local send_disturb=$?
 	get_config "send_title" "router_status" "router_temp" "router_wan" "client_list" "google_check_timeout"
 
@@ -1180,7 +1180,7 @@ function send(){
 	[ ! -z "$device_name" ] && local send_title="【$device_name】${send_title}"
 	[ -z "$send_content" ] && local send_content="${str_splitline}${str_title_start} ${MSG_CRON_ERROR_TITLE}${str_title_end}${str_linefeed}${str_tab}${MSG_CRON_ERROR_EMPTY}${str_splitline}"
 	[ "$send_disturb" -eq "0" ] && diy_send "${send_title}" "${send_content}" "${jsonpath}" >/dev/null 2>&1
-	[ $? -eq 1 ] && echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！！】定时推送失败，请检查网络或设置信息" >> ${logfile} || echo "`date "+%Y-%m-%d %H:%M:%S"` ${disturb_text}定时推送任务完成" >> ${logfile}
+	[ $? -eq 1 ] && echo "`date "+%Y-%m-%d %H:%M:%S"` [!!!] Scheduled push failed, please check network or settings" >> ${logfile} || echo "`date "+%Y-%m-%d %H:%M:%S"` ${disturb_text}Scheduled push task completed" >> ${logfile}
 	deltemp
 }
 
@@ -1209,10 +1209,10 @@ if [ "$1" ] ;then
 fi
 
 # 载入在线设备
-pushbot_init;[ $? -eq 1 ] && echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！！】读取设置出错，请检查设置项 " >> ${logfile} && exit
-echo "`date "+%Y-%m-%d %H:%M:%S"` 【初始化】载入在线设备" >> ${logfile}
+pushbot_init;[ $? -eq 1 ] && echo "`date "+%Y-%m-%d %H:%M:%S"` [!!!] Error reading settings, please check settings " >> ${logfile} && exit
+echo "`date "+%Y-%m-%d %H:%M:%S"` [Init] Loading online devices" >> ${logfile}
 > ${dir}send_enable.lock && pushbot_first && deltemp
-echo "`date "+%Y-%m-%d %H:%M:%S"` 【初始化】初始化完成" >> ${logfile}
+echo "`date "+%Y-%m-%d %H:%M:%S"` [Init] Initialization complete" >> ${logfile}
 
 # 循环
 while [ "$pushbot_enable" -eq "1" ]; do
@@ -1266,7 +1266,7 @@ while [ "$pushbot_enable" -eq "1" ]; do
 		[ ! -z "$device_name" ] && title="【$device_name】$title"
 		( echo "$lite_enable"|grep -q "content" ) && content="$title"
 		[ "$disturb" -eq "0" ] && diy_send "${title}" "${content}" "${jsonpath}" >/dev/null 2>&1
-		[ $? -eq 1 ] && echo "`date "+%Y-%m-%d %H:%M:%S"` 【！！！】推送失败，请检查网络或设置信息 " >> ${logfile}
+		[ $? -eq 1 ] && echo "`date "+%Y-%m-%d %H:%M:%S"` [!!!] Push failed, please check network or settings " >> ${logfile}
 	fi
 	
 	while [ -f "${dir}send_enable.lock" ]; do
