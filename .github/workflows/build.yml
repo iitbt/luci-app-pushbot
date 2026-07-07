@@ -1,0 +1,64 @@
+name: Build and Package luci-app-pushbot
+
+on:
+  push:
+    branches: [ "main" ]  # 或 "master"，根据你的默认分支调整
+  pull_request:
+    branches: [ "main" ]
+  # 允许手动触发
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # 定义你要编译的目标架构，这里以常见的 x86_64 和 aarch64 为例
+        arch: [x86_64, aarch64]
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Prepare environment
+      run: |
+        sudo apt update -y
+        sudo apt install -y build-essential clang flex bison g++ gawk \
+        gettext git libelf-dev libncurses5-dev libssl-dev python3-distutils \
+        rsync unzip zlib1g-dev file wget subversion
+
+    - name: Download OpenWrt SDK
+      run: |
+        # 请根据你需要的 OpenWrt 版本和架构修改 SDK 下载链接
+        # 这里以 OpenWrt 23.05 的 x86_64 SDK 为例
+        if [ "${{ matrix.arch }}" == "x86_64" ]; then
+          SDK_URL="https://downloads.openwrt.org/releases/23.05.0/targets/x86/64/openwrt-sdk-23.05.0-x86-64_gcc-12.3.0_musl.Linux-x86_64.tar.xz"
+        elif [ "${{ matrix.arch }}" == "aarch64" ]; then
+          # 请替换为实际的 aarch64 SDK 链接
+          SDK_URL="https://downloads.openwrt.org/releases/23.05.0/targets/armvirt/64/openwrt-sdk-23.05.0-armvirt-64_gcc-12.3.0_musl.Linux-x86_64.tar.xz"
+        fi
+        wget -O sdk.tar.xz $SDK_URL
+        tar -xf sdk.tar.xz
+        # 重命名 SDK 目录，方便后续操作
+        mv openwrt-sdk-* openwrt-sdk
+
+    - name: Build the package
+      run: |
+        cd openwrt-sdk
+        # 将你的插件源代码链接到 SDK 的 package 目录下
+        ln -sf ${{ github.workspace }} package/luci-app-pushbot
+        # 更新 feeds (如果需要)
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
+        # 选择要编译的包
+        echo "CONFIG_PACKAGE_luci-app-pushbot=y" >> .config
+        make defconfig
+        # 开始编译，-j 参数使用多核加速
+        make package/luci-app-pushbot/compile V=s -j$(nproc)
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: luci-app-pushbot-${{ matrix.arch }}
+        path: |
+          openwrt-sdk/bin/packages/*/luci-app-pushbot*.ipk
+          openwrt-sdk/bin/packages/*/pushbot*.ipk # 如果有其他相关包
