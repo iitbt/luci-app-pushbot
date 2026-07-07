@@ -23,7 +23,8 @@ This plugin supports the vast majority of mainstream notification platforms:
 - **PushPlus** (Supports pushing to WeChat Official Accounts and group pushes)
 - **Bark** (A custom notification service designed for iOS users, supporting custom icons/sounds)
 - **PushDeer** (An app-less push service based on Apple App Clips)
-- **Custom Webhook** (DIY interface, easily compatible with platforms like Telegram Bot, ServerChan, etc.)
+- **Telegram Bot** (Native support)
+- **Custom Webhook** (DIY interface, easily compatible with platforms like ServerChan, etc.)
 
 ## Core Features
 - **Device Online/Offline Notifications**: Accurately pushes device alias, MAC address, and online time.
@@ -82,7 +83,8 @@ CONFIG_PACKAGE_luci-app-pushbot=y
 - **PushPlus**（支持推送到微信公众号，支持一对多群组推送）
 - **Bark**（专为 iOS 用户设计的自定义通知服务，支持自定义图标/声音）
 - **PushDeer**（无 App 推送服务，基于苹果轻应用）
-- **自定义 Webhook**（DIY 接口，轻松兼容 Telegram Bot、Server酱 等平台）
+- **Telegram Bot**（原生完美支持）
+- **自定义 Webhook**（DIY 接口，轻松兼容 Server酱 等平台）
 
 ## 核心功能
 - **设备上下线通知**：精准推送设备别名、MAC 地址、在线时间。

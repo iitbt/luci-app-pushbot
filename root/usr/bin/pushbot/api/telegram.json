@@ -1,0 +1,26 @@
+{
+    "url": "https://api.telegram.org/bot",
+    "data": "@${tempjsonpath}",
+    "content_type": "Content-Type: application/json",
+    "str_title_start": "*",
+    "str_title_end": "*",
+    "str_linefeed": "\\n",
+    "str_splitline": "\\n---\\n",
+    "str_space": " ",
+    "str_tab": "    ",
+    "font_red": "",
+    "font_green": "",
+    "font_green2": "",
+    "font_blue": "",
+    "font_purple": "",
+    "font_end": "",
+    "font_end2": "",
+    "percentsym": "%",
+    "boldstar": "*",
+    "table_tab": "|",
+    "type": {
+        "chat_id": "\"${tg_chatid}\"",
+        "text": "\"${1}\\n\\n${2}\"",
+        "parse_mode": "\"Markdown\""
+    }
+}

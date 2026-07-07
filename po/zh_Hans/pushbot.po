@@ -622,3 +622,18 @@ msgstr "客户端名"
 
 msgid "Online Time"
 msgstr "在线时间"
+
+msgid "Telegram Bot"
+msgstr "Telegram 机器人"
+
+msgid "Telegram Bot Token"
+msgstr "Telegram 机器人 Token"
+
+msgid "Telegram Chat ID"
+msgstr "Telegram 会话 ID"
+
+msgid "Telegram Bot Token<br>Created via @BotFather<br><br>"
+msgstr "Telegram 机器人 Token<br>通过 @BotFather 创建<br><br>"
+
+msgid "Telegram Chat ID<br>Can be user id or group id<br><br>"
+msgstr "Telegram 会话 ID<br>可以是用户 ID 或者群组 ID<br><br>"
