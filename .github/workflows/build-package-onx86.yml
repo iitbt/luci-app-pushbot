@@ -1,389 +1,193 @@
 #
-# Copyright (c) 2019-2024 P3TERX <https://p3terx.com>
-# Copyright (c) 2024-2026 Modified by Community
+# Copyright (c) 2019-2020 P3TERX <https://p3terx.com>
 #
 # This is free software, licensed under the MIT License.
 # See /LICENSE for more information.
 #
 # https://github.com/P3TERX/Actions-OpenWrt
-# Description: Build OpenWrt package using GitHub Actions
+# Description: Build OpenWrt using GitHub Actions
 #
 
 name: Build luci-app-pushbot-x86
 
 on:
+  repository_dispatch:
   workflow_dispatch:
     inputs:
       ssh:
-        description: 'Enable SSH connection to Actions (用于调试)'
+        description: 'SSH connection to Actions'
         required: false
         default: 'false'
-        type: choice
-        options:
-          - 'false'
-          - 'true'
-      package_version:
-        description: 'Package version suffix (可选，如: v1.0.0)'
-        required: false
-        default: ''
-  repository_dispatch:
-    types: [build-package]
-  # schedule:
-  #   - cron: '0 14 * * 5'  # 每周五14:00自动构建
+#  schedule:
+#    - cron: 10 14 * * 5
 
 env:
-  # ========== 基础配置 ==========
-  # OpenWrt SDK 下载地址 (基于 24.10.0-rc5)
+  # SDK_URL: https://downloads.openwrt.org/releases/22.03.0-rc5/targets/x86/64/openwrt-sdk-22.03.0-rc5-x86-64_gcc-11.2.0_musl.Linux-x86_64.tar.xz
   SDK_URL: https://downloads.openwrt.org/releases/24.10.0-rc5/targets/x86/64/openwrt-sdk-24.10.0-rc5-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst
-  
-  # ========== 包配置 ==========
-  PACKAGE_NAME: luci-app-pushbot
-  PACKAGE_SOURCE_URL: https://github.com/permails/luci-app-pushbot
-  PACKAGE_BRANCH: main  # 或 master，根据需要修改
-  
-  # ========== 上传配置 ==========
-  UPLOAD_ARTIFACT: true
-  UPLOAD_RELEASE: true
-  UPLOAD_WETRANSFER: false
+  PackageName: luci-app-pushbot
+  # PackageSource_URL: https://github.com/zzsj0928/luci-app-pushbot
+  PackageSource_URL: https://github.com/permails/luci-app-pushbot
+  UPLOAD_Package: true
   UPLOAD_COWTRANSFER: false
-  UPLOAD_NAS: false
-  
-  # ========== NAS 配置 (如果启用) ==========
-  NAS_FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-  NAS_FTP_PASSWORD: ${{ secrets.FTP_PSW }}
-  NAS_FTP_IP: ${{ secrets.FTP_IP }}
-  NAS_TARGET_PATH: OpenwrtImgs/packages/luci-app-pushbot
-  
-  # ========== 通知配置 ==========
-  DINGTALK_WEBHOOK: ${{ secrets.WEBHOOK }}
-  TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-  TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-  
-  # ========== 系统配置 ==========
+  UPLOAD_WETRANSFER: true
+  UPLOAD_RELEASE: true
   TZ: Asia/Shanghai
+  UPLOAD_ZZNAS: false
+  ftp_username: ${{ secrets.FTP_USERNAME }}
+  ftp_psw: ${{ secrets.FTP_PSW }}
+  ftp_ip: ${{ secrets.FTP_IP }}
+  TargetPath: OpenwrtImgs/packages/luci-app-pushbot
+  upload_file: luci-app-pushbot_*
+  whkey: ${{ secrets.WEBHOOK }}
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
-    permissions:
-      contents: write  # 用于创建 Release
-      actions: read
-    
+    runs-on: ubuntu-latest
+
     steps:
-    # ==================== 1. 环境初始化 ====================
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        ref: ${{ github.ref }}
+    - name: Checkout
+      uses: actions/checkout@main
 
     - name: Initialization environment
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
-        # 清理磁盘空间
         sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
-        sudo rm -rf /opt/hostedtoolcache /opt/microsoft /usr/local/share/boost
-        
-        # 更新系统包
         sudo -E apt-get -qq update
-        sudo -E apt-get -qq install -y \
-          build-essential clang flex bison g++ gawk \
-          gettext git libelf-dev libncurses5-dev libssl-dev \
-          python3 python3-dev python3-distutils rsync unzip \
-          zlib1g-dev file wget subversion time \
-          zstd pigz xz-utils
-        
-        # 清理缓存
+        sudo -E apt-get -qq install build-essential clang flex bison g++ gawk \
+          gettext git libelf-dev libncurses5-dev libssl-dev python3 python3-dev \
+          python3-distutils rsync unzip zlib1g-dev file wget subversion
         sudo -E apt-get -qq autoremove --purge
         sudo -E apt-get -qq clean
         sudo timedatectl set-timezone "$TZ"
-        
-        # 创建工作目录
         sudo mkdir -p /workdir
         sudo chown $USER:$GROUPS /workdir
-        
-        # 显示磁盘空间
-        df -hT
 
-    # ==================== 2. 下载 SDK ====================
-    - name: Download OpenWrt SDK
+    - name: Clone source code
       working-directory: /workdir
       run: |
-        echo "Downloading SDK from: $SDK_URL"
-        wget -q --show-progress "$SDK_URL" -O sdk.tar.zst
-        echo "Extracting SDK..."
-        mkdir -p openwrt
-        tar -xaf sdk.tar.zst -C openwrt --strip-components=1
-        echo "SDK extracted successfully"
-        
-        # 创建软链接方便后续访问
-        ln -sf /workdir/openwrt "$GITHUB_WORKSPACE/openwrt"
+        df -hT $PWD
+        wget $SDK_URL
+        mkdir /workdir/openwrt
+        tar xf openwrt-sdk-* -C /workdir/openwrt --strip-components 1
+        ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
-    # ==================== 3. 配置 feeds ====================
     - name: Update feeds
-      working-directory: /workdir/openwrt
-      run: |
-        ./scripts/feeds update -a
-        
+      run: cd openwrt && ./scripts/feeds update -a
+
     - name: Install feeds
-      working-directory: /workdir/openwrt
+      run: cd openwrt && ./scripts/feeds install -a
+      
+    - name: Load custom configuration
       run: |
-        ./scripts/feeds install -a
-
-    # ==================== 4. 克隆包源码 ====================
-    - name: Clone package source
-      working-directory: /workdir/openwrt
-      run: |
-        echo "Cloning package from: $PACKAGE_SOURCE_URL (branch: $PACKAGE_BRANCH)"
-        git clone --depth=1 --branch "$PACKAGE_BRANCH" "$PACKAGE_SOURCE_URL" "package/$PACKAGE_NAME"
-        echo "Package cloned to: package/$PACKAGE_NAME"
-        
-        # 检查是否克隆成功
-        if [ ! -d "package/$PACKAGE_NAME" ]; then
-          echo "ERROR: Failed to clone package!"
-          exit 1
-        fi
-
-    # ==================== 5. 配置编译 ====================
-    - name: Configure build
-      working-directory: /workdir/openwrt
-      run: |
-        # 生成基础配置
+        cd openwrt
+        git clone $PackageSource_URL package/$PackageName
         make defconfig
-        
-        # 启用包编译
-        echo "CONFIG_PACKAGE_$PACKAGE_NAME=y" >> .config
-        
-        # 可选：启用调试信息（如果需要）
-        # echo "CONFIG_DEBUG=y" >> .config
-        
-        # 显示最终配置
-        echo "=== Final .config entries for $PACKAGE_NAME ==="
-        grep -i "$PACKAGE_NAME" .config || echo "Package not found in .config"
-        echo "================================================"
+        echo "CONFIG_PACKAGE_$PackageName=y" >> ./.config
 
-    # ==================== 6. SSH 调试（可选） ====================
+
     - name: SSH connection to Actions
       uses: P3TERX/ssh2actions@v1.0.0
-      if: github.event.inputs.ssh == 'true'
+      if: (github.event.inputs.ssh == 'true' && github.event.inputs.ssh  != 'false') || contains(github.event.action, 'ssh')
       env:
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
 
-    # ==================== 7. 编译包 ====================
-    - name: Compile package
+    - name: Compile the package
       id: compile
-      working-directory: /workdir/openwrt
       run: |
-        set -e  # 遇到错误立即退出
+        send_dingding="curl -s \"https://oapi.dingtalk.com/robot/send?access_token=${whkey}\" -H 'Content-Type: application/json' -d '{\"msgtype\": \"markdown\",\"markdown\": {\"title\":"
+        send_content0="【${PackageName}】正在启动编译！请稍后大约4小时..."
+        markdown_splitline="\n\n---\n\n"
+        GITHUB_WORKFLOW_URL=https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+        nowtime=`date "+%Y-%m-%d %H:%M:%S"`
+        eval "$send_dingding \"${send_content0}\",\"text\":\"${nowtime} $markdown_splitline #### <font color=#6A65FF>${send_content0}</font>\n\n[点此链接查看](${GITHUB_WORKFLOW_URL})\"}}'"
         
-        # 发送开始通知
-        if [ -n "$DINGTALK_WEBHOOK" ]; then
-          curl -s "$DINGTALK_WEBHOOK" \
-            -H 'Content-Type: application/json' \
-            -d "{
-              \"msgtype\": \"markdown\",
-              \"markdown\": {
-                \"title\": \"【$PACKAGE_NAME】开始编译\",
-                \"text\": \"## 🔨 编译开始\n\n- 包名: **$PACKAGE_NAME**\n- 时间: $(date '+%Y-%m-%d %H:%M:%S')\n- 版本: ${PACKAGE_VERSION:-latest}\n- 仓库: [查看详情](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\"
-              }
-            }"
-        fi
-        
-        # 编译
-        echo "Starting compilation with $(nproc) threads..."
-        make package/$PACKAGE_NAME/compile V=s
-        
-        # 编译完成后检查
-        COMPILED_FILE=$(find bin/packages/*/base -name "${PACKAGE_NAME}_*.ipk" 2>/dev/null | head -n1)
-        if [ -z "$COMPILED_FILE" ]; then
-          echo "ERROR: Package was not compiled successfully!"
-          exit 1
-        fi
-        
-        echo "status=success" >> $GITHUB_OUTPUT
-        echo "Package compiled successfully: $COMPILED_FILE"
-        
-        # 发送完成通知
-        if [ -n "$DINGTALK_WEBHOOK" ]; then
-          curl -s "$DINGTALK_WEBHOOK" \
-            -H 'Content-Type: application/json' \
-            -d "{
-              \"msgtype\": \"markdown\",
-              \"markdown\": {
-                \"title\": \"【$PACKAGE_NAME】编译成功 ✅\",
-                \"text\": \"## ✅ 编译完成\n\n- 包名: **$PACKAGE_NAME**\n- 状态: **成功**\n- 时间: $(date '+%Y-%m-%d %H:%M:%S')\n- 仓库: [查看详情](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\"
-              }
-            }"
-        fi
+      
+        cd openwrt
+        echo -e "$(nproc) thread compile"
+        make package/$PackageName/compile V=s
+        echo "::set-output name=status::success"
 
-    # ==================== 8. 检查磁盘空间 ====================
     - name: Check space usage
-      if: always()
+      if: (!cancelled())
       run: df -hT
 
-    # ==================== 9. 整理文件 ====================
     - name: Organize files
       id: organize
-      if: steps.compile.outputs.status == 'success' && env.UPLOAD_ARTIFACT == 'true'
+      if: env.UPLOAD_Package == 'true' && !cancelled()
       run: |
-        # 查找编译后的包
-        PACKAGE_DIR="/workdir/openwrt/bin/packages/*/base"
-        PACKAGE_FILE=$(find $PACKAGE_DIR -name "${PACKAGE_NAME}_*.ipk" 2>/dev/null | head -n1)
-        
-        if [ -z "$PACKAGE_FILE" ]; then
-          echo "ERROR: Cannot find compiled package!"
-          exit 1
-        fi
-        
-        # 设置环境变量
-        echo "PACKAGE_PATH=$(dirname $PACKAGE_FILE)" >> $GITHUB_ENV
-        echo "PACKAGE_FILE_NAME=$(basename $PACKAGE_FILE)" >> $GITHUB_ENV
-        echo "status=success" >> $GITHUB_OUTPUT
-        
-        echo "Package found: $(basename $PACKAGE_FILE)"
-        ls -lh "$PACKAGE_FILE"
+        cd openwrt/bin/packages/*/base
+        echo "PackagePath=$PWD" >> $GITHUB_ENV
+        echo "::set-output name=status::success"
 
-    # ==================== 10. 上传到 Artifact ====================
-    - name: Upload package artifact
-      uses: actions/upload-artifact@v4
-      if: steps.organize.outputs.status == 'success' && env.UPLOAD_ARTIFACT == 'true'
+    - name: Upload package
+      uses: actions/upload-artifact@main
+      if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        name: ${{ env.PACKAGE_FILE_NAME }}
-        path: ${{ env.PACKAGE_PATH }}/${{ env.PACKAGE_FILE_NAME }}
-        retention-days: 30
-        compression-level: 0
+        name: ${{ env.upload_file }}
+        path: ${{ env.PackagePath }}
 
-    # ==================== 11. 上传到 WeTransfer ====================
-    - name: Upload to WeTransfer
-      id: wetransfer
-      if: steps.organize.outputs.status == 'success' && env.UPLOAD_WETRANSFER == 'true'
-      run: |
-        curl -fsSL git.io/file-transfer | sh
-        ./transfer wet -s -p 16 --no-progress "${PACKAGE_PATH}/${PACKAGE_FILE_NAME}" 2>&1 | tee wetransfer.log
-        URL=$(grep -o 'https://[^ ]*' wetransfer.log | head -n1)
-        echo "::notice file=wetransfer.com::WeTransfer URL: $URL"
-        echo "url=$URL" >> $GITHUB_OUTPUT
-
-    # ==================== 12. 上传到 CowTransfer ====================
-    - name: Upload to CowTransfer
+    - name: Upload package to cowtransfer
       id: cowtransfer
-      if: steps.organize.outputs.status == 'success' && env.UPLOAD_COWTRANSFER == 'true'
+      if: steps.organize.outputs.status == 'success' && env.UPLOAD_COWTRANSFER == 'true' && !cancelled()
       run: |
         curl -fsSL git.io/file-transfer | sh
-        ./transfer cow --block 2621440 -s -p 64 --no-progress "${PACKAGE_PATH}/${PACKAGE_FILE_NAME}" 2>&1 | tee cowtransfer.log
-        URL=$(grep -o 'https://[^ ]*' cowtransfer.log | head -n1)
-        echo "::notice file=cowtransfer.com::CowTransfer URL: $URL"
-        echo "url=$URL" >> $GITHUB_OUTPUT
+        ./transfer cow --block 2621440 -s -p 64 --no-progress ${PackagePath}/${upload_file} 2>&1 | tee cowtransfer.log
+        echo "::warning file=cowtransfer.com::$(cat cowtransfer.log | grep https)"
+        echo "::set-output name=url::$(cat cowtransfer.log | grep https | cut -f3 -d" ")"
 
-    # ==================== 13. 上传到 NAS ====================
-    - name: Upload to NAS
-      id: nas
-      if: steps.organize.outputs.status == 'success' && env.UPLOAD_NAS == 'true'
+    - name: Upload firmware to WeTransfer
+      id: wetransfer
+      if: steps.organize.outputs.status == 'success' && env.UPLOAD_WETRANSFER == 'true' && !cancelled()
       run: |
-        # 检查 NAS 配置
-        if [ -z "$NAS_FTP_USERNAME" ] || [ -z "$NAS_FTP_PASSWORD" ] || [ -z "$NAS_FTP_IP" ]; then
-          echo "ERROR: NAS credentials not configured!"
-          exit 1
-        fi
+        curl -fsSL git.io/file-transfer | sh
+        ./transfer wet -s -p 16 --no-progress ${PackagePath}/${upload_file} 2>&1 | tee wetransfer.log
+        echo "::warning file=wetransfer.com::$(cat wetransfer.log | grep https)"
+        echo "::set-output name=url::$(cat wetransfer.log | grep https | cut -f3 -d" ")"
         
-        # 创建密码文件
-        echo "$NAS_FTP_PASSWORD" > /tmp/rsync.psw
-        chmod 600 /tmp/rsync.psw
+    - name: Upload firmware to my NAS
+      id: zz-nas
+      if: steps.organize.outputs.status == 'success' && env.UPLOAD_ZZNAS == 'true' && !cancelled()
+      run: |
+        send_dingding="curl -s \"https://oapi.dingtalk.com/robot/send?access_token=${whkey}\" -H 'Content-Type: application/json' -d '{\"msgtype\": \"markdown\",\"markdown\": {\"title\":"
+        send_content1="【${PackageName}】编译成功！正在上传固件到NAS..."
+        send_content2="【${PackageName}】编译成功！固件成功上传到NAS。"
+        markdown_splitline="\n\n---\n\n"
+        GITHUB_WORKFLOW_URL=https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+        nowtime=`date "+%Y-%m-%d %H:%M:%S"`
+        eval "$send_dingding \"${send_content1}\",\"text\":\"${nowtime} $markdown_splitline #### <font color=#6A65FF>${send_content1}</font>\n\n[点此链接查看](${GITHUB_WORKFLOW_URL})\"}}'"
         
-        # 上传文件
-        TIMESTAMP=$(date +"%Y.%m.%d-%H%M")
-        rsync -avrzP \
-          "${PACKAGE_PATH}/${PACKAGE_FILE_NAME}" \
-          "${NAS_FTP_USERNAME}@${NAS_FTP_IP}::${NAS_TARGET_PATH}/${TIMESTAMP}/" \
-          --password-file=/tmp/rsync.psw
+        cd openwrt/bin/packages/*/base
+        echo $ftp_psw > /tmp/rsync.psw && chmod 600 /tmp/rsync.psw
+        rsync -avrzP $upload_file_1 $ftp_username@$ftp_ip::$TargetPath/$(date +"%Y.%m.%d-%H%M")/ --password-file=/tmp/rsync.psw
+        echo "::warning file=zz-nas.com::All Released Files Uploaded to ZZ-NAS"
         
-        echo "::notice file=nas.upload::Uploaded to NAS successfully"
-        echo "status=success" >> $GITHUB_OUTPUT
+        nowtime=`date "+%Y-%m-%d %H:%M:%S"`
+        eval "$send_dingding \"${send_content2}\",\"text\":\"${nowtime} $markdown_splitline #### <font color=#92D050>${send_content2}</font>\n\n[点此链接查看](${GITHUB_WORKFLOW_URL})\"}}'"
 
-    # ==================== 14. 创建 Release ====================
     - name: Generate release tag
       id: tag
-      if: steps.organize.outputs.status == 'success' && env.UPLOAD_RELEASE == 'true'
+      if: env.UPLOAD_RELEASE == 'true' && !cancelled()
       run: |
-        if [ -n "${{ github.event.inputs.package_version }}" ]; then
-          VERSION="${{ github.event.inputs.package_version }}"
-        else
-          VERSION=$(date +"%Y.%m.%d-%H%M")
-        fi
-        
-        TAG_NAME="$PACKAGE_NAME-$VERSION"
-        echo "release_tag=$TAG_NAME" >> $GITHUB_OUTPUT
-        
-        # 创建 Release 说明
-        cat > release.md << EOF
-# $PACKAGE_NAME Package Release
+        echo "::set-output name=release_tag::$(date +"%Y.%m.%d-%H%M")"
+        touch release.txt
+        [ $UPLOAD_COWTRANSFER = true ] && echo "🔗 [Cowtransfer](${{ steps.cowtransfer.outputs.url }})" >> release.txt
+        [ $UPLOAD_WETRANSFER = true ] && echo "🔗 [WeTransfer](${{ steps.wetransfer.outputs.url }})" >> release.txt
+        echo "::set-output name=status::success"
 
-## 📦 版本信息
-- **包名**: $PACKAGE_NAME
-- **版本**: $VERSION
-- **编译时间**: $(date '+%Y-%m-%d %H:%M:%S')
-- **SDK**: $(basename $SDK_URL)
-- **架构**: x86_64
-
-## 🔗 下载链接
-- **Artifact**: 已上传到 GitHub Actions Artifacts
-EOF
-        
-        if [ -n "${{ steps.wetransfer.outputs.url }}" ]; then
-          echo "- **WeTransfer**: ${{ steps.wetransfer.outputs.url }}" >> release.md
-        fi
-        
-        if [ -n "${{ steps.cowtransfer.outputs.url }}" ]; then
-          echo "- **CowTransfer**: ${{ steps.cowtransfer.outputs.url }}" >> release.md
-        fi
-        
-        if [ "${{ steps.nas.outputs.status }}" == "success" ]; then
-          echo "- **NAS**: 已上传到 NAS" >> release.md
-        fi
-        
-        echo "## 📄 说明" >> release.md
-        echo "此包适用于 OpenWrt 24.10.0-rc5 x86_64 平台。" >> release.md
-        echo "安装命令: \`opkg install $PACKAGE_FILE_NAME\`" >> release.md
-        
-        echo "status=success" >> $GITHUB_OUTPUT
-
-    - name: Create Release
-      uses: softprops/action-gh-release@v2
-      if: steps.tag.outputs.status == 'success' && env.UPLOAD_RELEASE == 'true'
+    - name: Upload package to release
+      uses: softprops/action-gh-release@v1
+      if: steps.tag.outputs.status == 'success' && !cancelled()
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ steps.tag.outputs.release_tag }}
-        name: ${{ env.PACKAGE_NAME }} ${{ github.event.inputs.package_version || 'Latest' }}
-        body_path: release.md
-        files: |
-          ${{ env.PACKAGE_PATH }}/${{ env.PACKAGE_FILE_NAME }}
-        draft: false
-        prerelease: false
-        generate_release_notes: false
+        body_path: release.txt
+        files: ${{ env.PackagePath }}/${{ env.upload_file }}
 
-    # ==================== 15. 清理 Workflow 运行记录 ====================
-    - name: Delete old workflow runs
+    - name: Delete workflow runs
       uses: GitRML/delete-workflow-runs@main
-      if: always()
       with:
-        retain_days: 7
-        keep_minimum_runs: 5
-
-    # ==================== 16. 发送完成通知（最终） ====================
-    - name: Send completion notification
-      if: always()
-      run: |
-        if [ -n "$DINGTALK_WEBHOOK" ] && [ "${{ steps.compile.outputs.status }}" == "success" ]; then
-          curl -s "$DINGTALK_WEBHOOK" \
-            -H 'Content-Type: application/json' \
-            -d "{
-              \"msgtype\": \"markdown\",
-              \"markdown\": {
-                \"title\": \"【$PACKAGE_NAME】编译完成 🎉\",
-                \"text\": \"## 🎉 编译完成\n\n- 包名: **$PACKAGE_NAME**\n- 状态: **${{ job.status }}**\n- 时间: $(date '+%Y-%m-%d %H:%M:%S')\n- Release: ${{ steps.tag.outputs.release_tag }}\n- 仓库: [查看详情](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\"
-              }
-            }"
-        fi
+        retain_days: 1
+        keep_minimum_runs: 3
