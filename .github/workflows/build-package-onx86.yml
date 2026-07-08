@@ -22,10 +22,8 @@ on:
 #    - cron: 10 14 * * 5
 
 env:
-  # SDK_URL: https://downloads.openwrt.org/releases/22.03.0-rc5/targets/x86/64/openwrt-sdk-22.03.0-rc5-x86-64_gcc-11.2.0_musl.Linux-x86_64.tar.xz
   SDK_URL: https://downloads.openwrt.org/releases/24.10.0-rc5/targets/x86/64/openwrt-sdk-24.10.0-rc5-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst
   PackageName: luci-app-pushbot
-  # PackageSource_URL: https://github.com/zzsj0928/luci-app-pushbot
   PackageSource_URL: https://github.com/permails/luci-app-pushbot
   UPLOAD_Package: true
   UPLOAD_COWTRANSFER: false
@@ -42,7 +40,7 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04  # 使用更稳定的版本
 
     steps:
     - name: Checkout
@@ -54,11 +52,9 @@ jobs:
       run: |
         sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
         sudo -E apt-get -qq update
-        # 修复 Ubuntu 24.04 的包名变化
         sudo -E apt-get -qq install build-essential clang flex bison g++ gawk \
           gettext git libelf-dev libncurses5-dev libssl-dev python3 python3-dev \
-          rsync unzip zlib1g-dev file wget subversion python3-setuptools
-        # 如果 python3-distutils 不可用，使用 python3-setuptools 替代
+          python3-distutils rsync unzip zlib1g-dev file wget subversion
         sudo -E apt-get -qq autoremove --purge
         sudo -E apt-get -qq clean
         sudo timedatectl set-timezone "$TZ"
@@ -86,7 +82,8 @@ jobs:
         git clone $PackageSource_URL package/$PackageName
         make defconfig
         echo "CONFIG_PACKAGE_$PackageName=y" >> ./.config
-
+        # 显示配置确认
+        grep CONFIG_PACKAGE_$PackageName .config
 
     - name: SSH connection to Actions
       uses: P3TERX/ssh2actions@v1.0.0
@@ -98,85 +95,98 @@ jobs:
     - name: Compile the package
       id: compile
       run: |
-        send_dingding="curl -s \"https://oapi.dingtalk.com/robot/send?access_token=${whkey}\" -H 'Content-Type: application/json' -d '{\"msgtype\": \"markdown\",\"markdown\": {\"title\":"
-        send_content0="【${PackageName}】正在启动编译！请稍后大约4小时..."
-        markdown_splitline="\n\n---\n\n"
-        GITHUB_WORKFLOW_URL=https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
-        nowtime=`date "+%Y-%m-%d %H:%M:%S"`
-        eval "$send_dingding \"${send_content0}\",\"text\":\"${nowtime} $markdown_splitline #### <font color=#6A65FF>${send_content0}</font>\n\n[点此链接查看](${GITHUB_WORKFLOW_URL})\"}}'"
-        
-      
         cd openwrt
         echo -e "$(nproc) thread compile"
+        
+        # 先检查包是否存在
+        if [ ! -d "package/$PackageName" ]; then
+          echo "Error: Package directory not found!"
+          exit 1
+        fi
+        
+        # 编译
         make package/$PackageName/compile V=s
-        echo "::set-output name=status::success"
+        
+        # 检查编译结果
+        if [ $? -eq 0 ]; then
+          echo "Compilation successful!"
+          echo "status=success" >> $GITHUB_OUTPUT
+        else
+          echo "Compilation failed!"
+          exit 1
+        fi
 
     - name: Check space usage
       if: (!cancelled())
       run: df -hT
 
+    - name: Find and list package files
+      id: find_package
+      if: steps.compile.outputs.status == 'success' && !cancelled()
+      run: |
+        cd openwrt
+        echo "Searching for package files..."
+        find . -name "*.ipk" -type f | grep -i pushbot || echo "No ipk files found"
+        find . -name "*pushbot*" -type f | head -20
+        
+        # 查找实际的包路径
+        PKG_PATH=$(find . -path "*/base/*.ipk" -name "*pushbot*" -type f | head -1)
+        if [ -n "$PKG_PATH" ]; then
+          PKG_DIR=$(dirname "$PKG_PATH")
+          echo "Package directory: $PKG_DIR"
+          echo "PKG_DIR=$PKG_DIR" >> $GITHUB_ENV
+          echo "status=success" >> $GITHUB_OUTPUT
+        else
+          echo "No pushbot package found!"
+          # 列出所有ipk文件以便调试
+          find . -name "*.ipk" -type f | head -20
+          exit 1
+        fi
+
     - name: Organize files
       id: organize
-      if: env.UPLOAD_Package == 'true' && !cancelled()
+      if: steps.find_package.outputs.status == 'success' && !cancelled()
       run: |
-        cd openwrt/bin/packages/*/base
-        echo "PackagePath=$PWD" >> $GITHUB_ENV
-        echo "::set-output name=status::success"
+        cd openwrt
+        PKG_FULL_PATH=$(realpath "$PKG_DIR")
+        echo "PackagePath=$PKG_FULL_PATH" >> $GITHUB_ENV
+        echo "status=success" >> $GITHUB_OUTPUT
+        ls -la "$PKG_FULL_PATH"
 
     - name: Upload package
       uses: actions/upload-artifact@main
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        name: ${{ env.upload_file }}
-        path: ${{ env.PackagePath }}
+        name: luci-app-pushbot-package
+        path: ${{ env.PackagePath }}/*.ipk
 
     - name: Upload package to cowtransfer
       id: cowtransfer
       if: steps.organize.outputs.status == 'success' && env.UPLOAD_COWTRANSFER == 'true' && !cancelled()
       run: |
         curl -fsSL git.io/file-transfer | sh
-        ./transfer cow --block 2621440 -s -p 64 --no-progress ${PackagePath}/${upload_file} 2>&1 | tee cowtransfer.log
+        ./transfer cow --block 2621440 -s -p 64 --no-progress ${PackagePath}/*.ipk 2>&1 | tee cowtransfer.log
         echo "::warning file=cowtransfer.com::$(cat cowtransfer.log | grep https)"
-        echo "::set-output name=url::$(cat cowtransfer.log | grep https | cut -f3 -d" ")"
+        echo "url=$(cat cowtransfer.log | grep https | cut -f3 -d' ')" >> $GITHUB_OUTPUT
 
     - name: Upload firmware to WeTransfer
       id: wetransfer
       if: steps.organize.outputs.status == 'success' && env.UPLOAD_WETRANSFER == 'true' && !cancelled()
       run: |
         curl -fsSL git.io/file-transfer | sh
-        ./transfer wet -s -p 16 --no-progress ${PackagePath}/${upload_file} 2>&1 | tee wetransfer.log
+        ./transfer wet -s -p 16 --no-progress ${PackagePath}/*.ipk 2>&1 | tee wetransfer.log
         echo "::warning file=wetransfer.com::$(cat wetransfer.log | grep https)"
-        echo "::set-output name=url::$(cat wetransfer.log | grep https | cut -f3 -d" ")"
-        
-    - name: Upload firmware to my NAS
-      id: zz-nas
-      if: steps.organize.outputs.status == 'success' && env.UPLOAD_ZZNAS == 'true' && !cancelled()
-      run: |
-        send_dingding="curl -s \"https://oapi.dingtalk.com/robot/send?access_token=${whkey}\" -H 'Content-Type: application/json' -d '{\"msgtype\": \"markdown\",\"markdown\": {\"title\":"
-        send_content1="【${PackageName}】编译成功！正在上传固件到NAS..."
-        send_content2="【${PackageName}】编译成功！固件成功上传到NAS。"
-        markdown_splitline="\n\n---\n\n"
-        GITHUB_WORKFLOW_URL=https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
-        nowtime=`date "+%Y-%m-%d %H:%M:%S"`
-        eval "$send_dingding \"${send_content1}\",\"text\":\"${nowtime} $markdown_splitline #### <font color=#6A65FF>${send_content1}</font>\n\n[点此链接查看](${GITHUB_WORKFLOW_URL})\"}}'"
-        
-        cd openwrt/bin/packages/*/base
-        echo $ftp_psw > /tmp/rsync.psw && chmod 600 /tmp/rsync.psw
-        rsync -avrzP $upload_file_1 $ftp_username@$ftp_ip::$TargetPath/$(date +"%Y.%m.%d-%H%M")/ --password-file=/tmp/rsync.psw
-        echo "::warning file=zz-nas.com::All Released Files Uploaded to ZZ-NAS"
-        
-        nowtime=`date "+%Y-%m-%d %H:%M:%S"`
-        eval "$send_dingding \"${send_content2}\",\"text\":\"${nowtime} $markdown_splitline #### <font color=#92D050>${send_content2}</font>\n\n[点此链接查看](${GITHUB_WORKFLOW_URL})\"}}'"
+        echo "url=$(cat wetransfer.log | grep https | cut -f3 -d' ')" >> $GITHUB_OUTPUT
 
     - name: Generate release tag
       id: tag
-      if: env.UPLOAD_RELEASE == 'true' && !cancelled()
+      if: steps.organize.outputs.status == 'success' && env.UPLOAD_RELEASE == 'true' && !cancelled()
       run: |
-        echo "::set-output name=release_tag::$(date +"%Y.%m.%d-%H%M")"
+        echo "release_tag=$(date +'%Y.%m.%d-%H%M')" >> $GITHUB_OUTPUT
         touch release.txt
-        [ $UPLOAD_COWTRANSFER = true ] && echo "🔗 [Cowtransfer](${{ steps.cowtransfer.outputs.url }})" >> release.txt
-        [ $UPLOAD_WETRANSFER = true ] && echo "🔗 [WeTransfer](${{ steps.wetransfer.outputs.url }})" >> release.txt
-        echo "::set-output name=status::success"
+        [ "$UPLOAD_COWTRANSFER" = "true" ] && echo "🔗 [Cowtransfer](${{ steps.cowtransfer.outputs.url }})" >> release.txt
+        [ "$UPLOAD_WETRANSFER" = "true" ] && echo "🔗 [WeTransfer](${{ steps.wetransfer.outputs.url }})" >> release.txt
+        echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload package to release
       uses: softprops/action-gh-release@v1
@@ -186,7 +196,7 @@ jobs:
       with:
         tag_name: ${{ steps.tag.outputs.release_tag }}
         body_path: release.txt
-        files: ${{ env.PackagePath }}/${{ env.upload_file }}
+        files: ${{ env.PackagePath }}/*.ipk
 
     - name: Delete workflow runs
       uses: GitRML/delete-workflow-runs@main
