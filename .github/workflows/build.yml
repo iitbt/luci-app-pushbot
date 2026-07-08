@@ -9,7 +9,7 @@
 # Description: Build OpenWrt package using GitHub Actions
 #
 
-name: Build luci-app-pushbot-x86
+name: Build
 
 on:
   workflow_dispatch:
